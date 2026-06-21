@@ -1,0 +1,50 @@
+name: Docs
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment; don't cancel in-progress production
+# deploys, but skip queued ones.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4 # TODO: pin to full SHA before v1
+      - uses: actions/setup-python@v5 # TODO: pin to full SHA before v1
+        with:
+          python-version: "3.x"
+      - name: Install doc dependencies
+        run: pip install -r docs/requirements.txt
+      - name: Build HTML
+        run: |
+          sphinx-build -b html -W --keep-going docs/source docs/_build/html
+          touch docs/_build/html/.nojekyll
+      - name: Upload Pages artifact
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3 # TODO: pin to full SHA before v1
+        with:
+          path: docs/_build/html
+
+  deploy:
+    # Only deploy from main; PRs just build to catch breakage.
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4 # TODO: pin to full SHA before v1

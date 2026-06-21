@@ -216,3 +216,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# IVPM workspace outputs (populated by `ivpm update`, e.g. when running the
+# integration tests locally)
+packages/
+test/fixtures/*/packages/

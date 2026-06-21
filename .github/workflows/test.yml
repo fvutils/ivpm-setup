@@ -1,0 +1,120 @@
+name: Test
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# These jobs fetch real (small, stable) dependencies over the network. Keep
+# fixture deps tiny to limit flakiness.
+jobs:
+  # --- Cache lifecycle: cold (job A) -> warm (job B, fresh runner) -----------
+  # A unique per-run/per-attempt key prefix guarantees job A is a true cold
+  # miss; job B (needs: cold) then restores what A saved across runners.
+  cold:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4 # TODO: pin to full SHA before v1
+      - name: Cold run
+        id: run
+        uses: ./
+        with:
+          python-version: "3.12"
+          project-dir: test/fixtures/minimal
+          cache-key-prefix: test-min-${{ github.run_id }}-${{ github.run_attempt }}
+          cache-dependency-path: test/fixtures/minimal/ivpm.yaml
+      - name: Assert cold miss + populated workspace
+        run: |
+          echo "cache-hit=${{ steps.run.outputs.cache-hit }}"
+          echo "ivpm-version=${{ steps.run.outputs.ivpm-version }}"
+          test "${{ steps.run.outputs.cache-hit }}" = "false"
+          test -n "${{ steps.run.outputs.ivpm-version }}"
+          bash test/assert-minimal.sh test/fixtures/minimal
+
+  warm:
+    needs: cold
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4 # TODO: pin to full SHA before v1
+      - name: Warm run (same key, fresh runner)
+        id: run
+        uses: ./
+        with:
+          python-version: "3.12"
+          project-dir: test/fixtures/minimal
+          cache-key-prefix: test-min-${{ github.run_id }}-${{ github.run_attempt }}
+          cache-dependency-path: test/fixtures/minimal/ivpm.yaml
+      - name: Assert exact cache hit + populated workspace
+        run: |
+          echo "cache-hit=${{ steps.run.outputs.cache-hit }}"
+          test "${{ steps.run.outputs.cache-hit }}" = "true"
+          bash test/assert-minimal.sh test/fixtures/minimal
+
+  # --- Installer resolution: auto / pip / uv --------------------------------
+  installer:
+    strategy:
+      fail-fast: false
+      matrix:
+        installer: [auto, pip, uv]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4 # TODO: pin to full SHA before v1
+      - name: Run with installer=${{ matrix.installer }}
+        id: run
+        uses: ./
+        with:
+          python-version: "3.12"
+          installer: ${{ matrix.installer }}
+          project-dir: test/fixtures/minimal
+          cache: "false"
+      - name: Assert install + workspace
+        run: |
+          test -n "${{ steps.run.outputs.ivpm-version }}"
+          bash test/assert-minimal.sh test/fixtures/minimal
+
+  # --- Setup-only: install + export env, but do NOT run update ---------------
+  setup-only:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4 # TODO: pin to full SHA before v1
+      - name: Setup only
+        id: setup
+        uses: ./
+        with:
+          python-version: "3.12"
+          run-update: "false"
+          project-dir: test/fixtures/minimal
+          cache: "false"
+      - name: Assert ivpm installed, env exported, workspace NOT populated
+        run: |
+          command -v ivpm
+          test -n "$IVPM_CACHE"
+          test -n "${{ steps.setup.outputs.ivpm-version }}"
+          test ! -d test/fixtures/minimal/packages
+      - name: Drive update manually
+        run: ivpm update -p test/fixtures/minimal
+      - name: Assert workspace now populated
+        run: bash test/assert-minimal.sh test/fixtures/minimal
+
+  # --- Multiple dep-sets ----------------------------------------------------
+  multi-depset:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4 # TODO: pin to full SHA before v1
+      - name: Run with two dep-sets
+        uses: ./
+        with:
+          python-version: "3.12"
+          project-dir: test/fixtures/multi-depset
+          dep-set: |
+            default
+            ci
+          cache: "false"
+      - name: Assert both dep-sets present in venv
+        run: |
+          py=test/fixtures/multi-depset/packages/python/bin/python
+          test -x "$py"
+          "$py" -c "import toposort, iniconfig, ptyprocess"

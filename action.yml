@@ -1,0 +1,126 @@
+name: "Setup IVPM"
+description: "Install IVPM, restore its dependency cache, and run ivpm update"
+author: "fvutils"
+branding:
+  icon: "package"
+  color: "blue"
+
+inputs:
+  version:
+    description: "IVPM version spec to install (e.g. 2.14.0 or '>=2.14,<3'). Empty installs the latest from PyPI."
+    default: ""
+  python-version:
+    description: "If set, run actions/setup-python with this version before installing IVPM."
+    default: ""
+  installer:
+    description: "How to install IVPM and build venvs: 'auto' (uv if available, else pip), 'pip', or 'uv'."
+    default: "auto"
+  run-update:
+    description: "Run 'ivpm update' after install. Set 'false' for setup-only mode."
+    default: "true"
+  dep-set:
+    description: "Dependency set(s) to update. Newline/comma/space separated for multiple; passed as repeated -d."
+    default: ""
+  project-dir:
+    description: "Project directory passed as -p."
+    default: "."
+  jobs:
+    description: "Parallel fetch jobs, passed as -j."
+    default: ""
+  args:
+    description: "Extra raw args appended to 'ivpm update' (escape hatch)."
+    default: ""
+  cache:
+    description: "Enable restore+save of the IVPM content-addressed cache."
+    default: "true"
+  cache-dir:
+    description: "Directory exported as IVPM_CACHE. Defaults to ${RUNNER_TEMP}/ivpm-cache."
+    default: ""
+  cache-key-prefix:
+    description: "Prefix for the cache key; lets callers namespace caches by OS/matrix."
+    default: "ivpm"
+  cache-dependency-path:
+    description: "Glob(s) hashed into the cache key."
+    default: |
+      **/ivpm.yaml
+      **/*.ivpm.yaml
+      **/package-lock.json
+  cache-python:
+    description: "Also cache the pip/uv download caches (~/.cache/pip, ~/.cache/uv)."
+    default: "true"
+  token:
+    description: "Token for private git deps and GitHub API rate limits."
+    default: ${{ github.token }}
+
+outputs:
+  cache-hit:
+    description: "true if the primary IVPM cache key matched exactly."
+    value: ${{ steps.restore.outputs.cache-hit }}
+  ivpm-version:
+    description: "Resolved installed IVPM version."
+    value: ${{ steps.install.outputs.version }}
+  cache-dir:
+    description: "Absolute path used as IVPM_CACHE."
+    value: ${{ steps.configure.outputs.cache-dir }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Python
+      if: inputs.python-version != ''
+      uses: actions/setup-python@v5 # TODO: pin to full SHA before v1 (plan §2.4)
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install IVPM
+      id: install
+      shell: bash
+      env:
+        IVPM_VERSION: ${{ inputs.version }}
+        IVPM_INSTALLER: ${{ inputs.installer }}
+      run: bash "$GITHUB_ACTION_PATH/scripts/install-ivpm.sh"
+
+    - name: Configure
+      id: configure
+      shell: bash
+      env:
+        IVPM_CACHE_DIR_IN: ${{ inputs.cache-dir }}
+        IVPM_TOKEN: ${{ inputs.token }}
+        GH_TOKEN: ${{ inputs.token }}
+        GITHUB_TOKEN: ${{ inputs.token }}
+      run: bash "$GITHUB_ACTION_PATH/scripts/configure.sh"
+
+    - name: Restore cache
+      id: restore
+      if: inputs.cache == 'true'
+      uses: actions/cache/restore@v4 # TODO: pin to full SHA before v1
+      with:
+        path: |
+          ${{ steps.configure.outputs.cache-dir }}
+          ${{ inputs.cache-python == 'true' && '~/.cache/pip' || '' }}
+          ${{ inputs.cache-python == 'true' && '~/.cache/uv' || '' }}
+        key: ${{ inputs.cache-key-prefix }}-${{ runner.os }}-${{ hashFiles(inputs.cache-dependency-path) }}
+        restore-keys: |
+          ${{ inputs.cache-key-prefix }}-${{ runner.os }}-
+
+    - name: ivpm update
+      if: inputs.run-update == 'true'
+      shell: bash
+      env:
+        IVPM_PROJECT_DIR: ${{ inputs.project-dir }}
+        IVPM_DEP_SET: ${{ inputs.dep-set }}
+        IVPM_JOBS: ${{ inputs.jobs }}
+        IVPM_EXTRA_ARGS: ${{ inputs.args }}
+        GH_TOKEN: ${{ inputs.token }}
+        GITHUB_TOKEN: ${{ inputs.token }}
+      run: bash "$GITHUB_ACTION_PATH/scripts/run-update.sh"
+
+    - name: Save cache
+      if: inputs.cache == 'true' && steps.restore.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4 # TODO: pin to full SHA before v1
+      with:
+        path: |
+          ${{ steps.configure.outputs.cache-dir }}
+          ${{ inputs.cache-python == 'true' && '~/.cache/pip' || '' }}
+          ${{ inputs.cache-python == 'true' && '~/.cache/uv' || '' }}
+        key: ${{ steps.restore.outputs.cache-primary-key }}

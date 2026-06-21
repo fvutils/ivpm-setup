@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=https://fvutils.github.io/ivpm/ivpm.json
+#
+# Multi-dep-set fixture: a `default` set plus a `ci` set, to exercise the
+# action's `dep-set` input (repeated -d) and multi-set selection.
+package:
+  name: ivpm-setup-test-multidepset
+
+  dep-sets:
+  - name: default
+    deps:
+    - name: toposort
+      src: pypi
+
+  - name: ci
+    deps:
+    - name: iniconfig
+      src: pypi
+    - name: ptyprocess
+      src: pypi

@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=https://fvutils.github.io/ivpm/ivpm.json
+#
+# Minimal fixture: a couple of small PyPI deps (exercise the pip/uv download
+# cache) plus one small git dep (exercise the IVPM_CACHE git-clone cache).
+# All deps are tiny, pure-Python, and very stable to keep CI fast/non-flaky.
+package:
+  name: ivpm-setup-test-minimal
+
+  dep-sets:
+  - name: default
+    deps:
+    - name: toposort
+      src: pypi
+    - name: iniconfig
+      src: pypi
+    - name: six
+      url: https://github.com/benjaminp/six.git

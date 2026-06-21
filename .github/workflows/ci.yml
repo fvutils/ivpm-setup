@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4 # TODO: pin to full SHA before v1
+
+      # shellcheck is preinstalled on GitHub-hosted ubuntu runners.
+      - name: shellcheck
+        run: shellcheck scripts/*.sh
+
+      - name: actionlint
+        run: |
+          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          ./actionlint -color
+
+      # Sanity-check that action.yml is well-formed YAML and exposes the
+      # expected top-level keys.
+      - name: validate action.yml
+        run: |
+          python3 - <<'PY'
+          import sys, yaml
+          with open("action.yml") as f:
+              a = yaml.safe_load(f)
+          for k in ("name", "description", "inputs", "outputs", "runs"):
+              assert k in a, f"action.yml missing top-level key: {k}"
+          assert a["runs"]["using"] == "composite", "expected composite action"
+          print("action.yml: ok")
+          PY
