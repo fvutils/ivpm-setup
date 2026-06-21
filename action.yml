@@ -54,8 +54,10 @@ inputs:
 
 outputs:
   cache-hit:
-    description: "true if the primary IVPM cache key matched exactly."
-    value: ${{ steps.restore.outputs.cache-hit }}
+    description: "'true' if the primary IVPM cache key matched exactly, else 'false'."
+    # Normalize: actions/cache/restore emits an empty string on a full miss (and
+    # the step is skipped entirely when cache is disabled). Coerce to true/false.
+    value: ${{ steps.restore.outputs.cache-hit == 'true' }}
   ivpm-version:
     description: "Resolved installed IVPM version."
     value: ${{ steps.install.outputs.version }}
