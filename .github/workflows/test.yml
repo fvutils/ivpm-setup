@@ -95,7 +95,9 @@ jobs:
           test -n "${{ steps.setup.outputs.ivpm-version }}"
           test ! -d test/fixtures/minimal/packages
       - name: Drive update manually
-        run: ivpm update -p test/fixtures/minimal
+        # Use an absolute -p: IVPM's pip venv backend mis-resolves a relative
+        # project dir during install (see scripts/run-update.sh).
+        run: ivpm update -p "$GITHUB_WORKSPACE/test/fixtures/minimal"
       - name: Assert workspace now populated
         run: bash test/assert-minimal.sh test/fixtures/minimal
 

@@ -15,6 +15,15 @@ dep_set="${IVPM_DEP_SET:-}"
 jobs="${IVPM_JOBS:-}"
 extra_args="${IVPM_EXTRA_ARGS:-}"
 
+# Resolve project-dir to an absolute path. IVPM's pip venv backend resolves the
+# venv python relative to the current directory and changes cwd during the
+# install phase, so a relative -p (including the default ".") breaks it with
+# "Unknown python virtual-environment structure". An absolute path is robust
+# across both the pip and uv backends.
+if [ -d "$project_dir" ]; then
+  project_dir="$(cd "$project_dir" && pwd)"
+fi
+
 args=(update -p "$project_dir")
 
 # dep-set: normalize commas/newlines/tabs to spaces, then split into -d flags.

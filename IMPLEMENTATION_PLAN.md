@@ -123,6 +123,14 @@ Steps:
    when `cache-python == 'true'`.
 5. **ivpm update** — `scripts/run-update.sh` (guarded by `run-update`); builds
    the argv array (`-p`, repeated `-d`, `-j`, raw `args`) and execs `ivpm`.
+   ⚠️ **Absolute `project-dir`:** the script resolves `project-dir` to an
+   absolute path before passing it as `-p`. IVPM's **pip** venv backend resolves
+   the venv python relative to cwd and changes cwd during the install phase, so a
+   relative `-p` (including the default `.`) fails with *"Unknown python
+   virtual-environment structure"*. The **uv** backend happens to avoid it — which
+   is why the first CI run had `installer: uv` green but `pip`/`auto` red. This is
+   an upstream IVPM bug (`utils.get_venv_python` / pip path in
+   `setup_venv`); the action works around it, and it should also be fixed in IVPM.
 6. **Save cache** — `actions/cache/save@<sha>` (guarded by `cache` AND
    `cache-hit != 'true'`), keyed on `steps.restore.outputs.cache-primary-key`.
 
