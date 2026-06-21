@@ -1,13 +1,14 @@
 # `ivpm-setup` — Implementation, Test & Documentation Plan
 
-**Status:** Scaffold complete — pending first CI run
+**Status:** Scaffold complete — **CI green** on branch `scaffold-action`
 **Date:** 2026-06-21
 **Companion design:** `../ivpm/github-action-design.md` (the design of record)
 
 ## Progress at a glance
 
-The full repository is scaffolded and **locally validated** (shellcheck clean,
-actionlint clean, Sphinx builds warning-free):
+The full repository is scaffolded, locally validated, and **green in CI** — the
+`Test` workflow passes all 7 jobs, including the cross-runner cold→warm cache
+lifecycle (`warm` confirmed `cache-hit=true`):
 
 - ✅ **Action** — `action.yml` (composite) + `scripts/{install-ivpm,configure,run-update}.sh`
   (I1–I5 implemented).
@@ -21,14 +22,17 @@ actionlint clean, Sphinx builds warning-free):
 
 **Remaining before public v1:**
 
-1. **Push & green-light CI** — `test.yml`/`docs.yml` only run on GitHub; first
-   push validates the cache lifecycle + installer matrix behaviorally.
+1. ✅ ~~Push & green-light CI~~ — done; `Test` is green (cache lifecycle +
+   installer matrix verified behaviorally).
 2. **Pin third-party actions to SHAs** — every `uses:` currently carries a
    `# TODO: pin to full SHA before v1` marker.
-3. **Enable Pages** — repo Settings → Pages → Source = "GitHub Actions" (one-time).
+3. **Enable Pages** — repo Settings → Pages → Source = "GitHub Actions" (one-time),
+   then verify `docs.yml` deploys on merge to `main`.
 4. **Deferred test coverage** — stale/prefix-restore, pinned-version, private-dep,
    macOS (see §3.2).
 5. **Tag `v1.0.0` + publish to Marketplace** (R3, manual UI step).
+6. **Upstream IVPM fix** — relative `-p` breaks the pip venv backend (see §2.1);
+   the action works around it but IVPM should be fixed too.
 
 This plan turns the `github-action-design.md` design into a concrete, sequenced
 build-out of the `fvutils/ivpm-setup` GitHub Action repository. It covers three
@@ -187,11 +191,11 @@ comment, per design §8.
 
 | # | Deliverable | Done-when | Status |
 |---|---|---|---|
-| I1 | `action.yml` + `scripts/` skeleton (install + configure + update) | `ivpm-setup` runs `ivpm update` against a fixture in a throwaway workflow | ✅ code written; shellcheck-clean, YAML valid — CI-verified via `test.yml` (T2) |
-| I2 | Cache restore/save split wired in | second run on unchanged manifest → `cache-hit == true`, update near-instant | ✅ wired in `action.yml` — CI-verify pending (T2) |
-| I3 | Git auth + private-dep path | private git dep clones using `github.token` | ✅ `configure.sh` — CI-verify pending (T4) |
-| I4 | Installer resolution (`auto`/`uv`/`pip`) + `cache-python` | `auto` picks uv when present, pip otherwise; pip/uv download caches persist | ✅ `install-ivpm.sh` — CI-verify pending (T3) |
-| I5 | Outputs (`cache-hit`, `ivpm-version`, `cache-dir`) finalized | consumed by a downstream step in `test.yml` | ✅ wired — `ivpm-version` via `importlib.metadata`; CI-verify pending (T2) |
+| I1 | `action.yml` + `scripts/` skeleton (install + configure + update) | `ivpm-setup` runs `ivpm update` against a fixture in a throwaway workflow | ✅ **CI-verified** via `test.yml` |
+| I2 | Cache restore/save split wired in | second run on unchanged manifest → `cache-hit == true`, update near-instant | ✅ **CI-verified** (`warm` job: `cache-hit=true`) |
+| I3 | Git auth + private-dep path | private git dep clones using `github.token` | ✅ public git dep clones; private-dep path ⏳ (T4) |
+| I4 | Installer resolution (`auto`/`uv`/`pip`) + `cache-python` | `auto` picks uv when present, pip otherwise; pip/uv download caches persist | ✅ **CI-verified** (auto/pip/uv jobs green) |
+| I5 | Outputs (`cache-hit`, `ivpm-version`, `cache-dir`) finalized | consumed by a downstream step in `test.yml` | ✅ **CI-verified**; `cache-hit` normalized to true/false |
 
 > **All implementation milestones I1–I5 are implemented in one composite
 > `action.yml` + three scripts.** They are locally validated (shellcheck clean,
@@ -269,9 +273,9 @@ and stable to limit flakiness. (Mirrors the existing
 
 | # | Deliverable | Done-when | Status |
 |---|---|---|---|
-| T1 | `ci.yml` (actionlint + shellcheck) | every push lints clean | ✅ written; locally actionlint+shellcheck clean |
-| T2 | `test.yml` cold/exact-hit on `minimal` | both pass on `ubuntu-latest` | ✅ written; CI-run pending (needs push) |
-| T3 | Installer matrix + multi-dep-set + setup-only | green | ✅ written; CI-run pending |
+| T1 | `ci.yml` (actionlint + shellcheck) | every push lints clean | ✅ **green in CI** |
+| T2 | `test.yml` cold/exact-hit on `minimal` | both pass on `ubuntu-latest` | ✅ **green in CI** (`warm` confirmed `cache-hit=true`) |
+| T3 | Installer matrix + multi-dep-set + setup-only | green | ✅ **green in CI** (auto/pip/uv all pass) |
 | T4 | Stale-restore, pinned-version, private-dep, macOS | green | ⏳ deferred (see above) |
 
 ---
