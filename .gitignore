@@ -221,3 +221,7 @@ __marimo__/
 # integration tests locally)
 packages/
 test/fixtures/*/packages/
+
+# Local design/blog drafts kept in the repo dir but not tracked (yet)
+docs/blog-announcement-outline.md
+docs/cache-eviction-design.md
