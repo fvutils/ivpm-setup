@@ -24,10 +24,16 @@ lifecycle (`warm` confirmed `cache-hit=true`):
 
 1. ✅ ~~Push & green-light CI~~ — done; `Test` is green (cache lifecycle +
    installer matrix verified behaviorally).
-2. **Pin third-party actions to SHAs** — every `uses:` currently carries a
-   `# TODO: pin to full SHA before v1` marker.
+2. ✅ ~~Pin third-party actions to SHAs (shipped `action.yml`)~~ — done:
+   `setup-python` + `cache` pinned to SHAs. The repo's own CI workflows
+   (`ci/test/docs/release.yml`) remain on tags (internal-only; lower risk) —
+   pin post-v1 if desired.
 3. **Enable Pages** — repo Settings → Pages → Source = "GitHub Actions" (one-time),
-   then verify `docs.yml` deploys on merge to `main`.
+   then verify `docs.yml` deploys on merge to `main`. (Until enabled, the `docs.yml`
+   deploy job fails on `main`; the build job still passes.)
+3b. **direnv** — consumers run tools via `direnv exec . <command>` against the
+   `packages/packages.envrc` IVPM generates; docs/examples show this. An optional
+   action-side direnv assist (install + `direnv allow`) is **deferred post-v1**.
 4. **Deferred test coverage** — stale/prefix-restore, pinned-version, private-dep,
    macOS (see §3.2).
 5. **Tag `v1.0.0` + publish to Marketplace** (R3, manual UI step).

@@ -53,6 +53,27 @@ Setup-only (drive update manually)
 The second step inherits ``IVPM_CACHE`` and the git-auth configuration from the
 action.
 
+Running tools via direnv
+------------------------
+
+For workspaces that pull in tools publishing ``export.envrc`` (e.g. EDA
+toolchains), run them inside the activated environment with ``direnv exec``:
+
+.. code-block:: yaml
+
+   steps:
+     - uses: actions/checkout@v4
+     - uses: fvutils/ivpm-setup@v1
+     - name: Enable direnv
+       run: |
+         sudo apt-get update && sudo apt-get install -y direnv
+         direnv allow .
+     - run: direnv exec . verilator --version
+     - run: direnv exec . pytest
+
+Requires a project-root ``.envrc`` that sources ``packages/packages.envrc`` (see
+the IVPM direnv documentation) and direnv installed on the runner.
+
 Multiple dep-sets
 -----------------
 

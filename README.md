@@ -44,6 +44,22 @@ jobs:
       - run: ./packages/python/bin/python -m pytest
 ```
 
+### Running workspace tools
+
+After `ivpm update`, run tools either directly (`./packages/python/bin/python …`)
+or — for workspaces that pull in tools publishing `export.envrc` (e.g. EDA
+toolchains) — through direnv against the generated `packages/packages.envrc`:
+
+```yaml
+      - uses: fvutils/ivpm-setup@v1
+      - run: sudo apt-get update && sudo apt-get install -y direnv && direnv allow .
+      - run: direnv exec . pytest
+```
+
+This needs direnv on the runner and a project-root `.envrc` that does
+`source_env packages/packages.envrc`. See the [docs](https://fvutils.github.io/ivpm-setup/)
+for details.
+
 ## Common inputs
 
 | Input | Default | Description |
