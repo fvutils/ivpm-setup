@@ -1,8 +1,14 @@
 # `ivpm-setup` — Implementation, Test & Documentation Plan
 
-**Status:** Scaffold complete — **CI green** on branch `scaffold-action`
-**Date:** 2026-06-21
+**Status:** **Released — `fvutils/ivpm-setup@v1` is live** (v1.0.0, `5fe492a`)
+**Date:** 2026-06-22
 **Companion design:** `../ivpm/github-action-design.md` (the design of record)
+
+**Shipped:** merged to `main`, tagged `v1.0.0`, `release.yml` published the
+release + moving `v1` tag, docs deployed to <https://fvutils.github.io/ivpm-setup/>.
+Consumers can now use `uses: fvutils/ivpm-setup@v1`. Remaining: Marketplace
+listing (manual UI), deferred test coverage (§3.2), optional direnv assist, and
+the upstream IVPM relative-`-p` fix.
 
 ## Progress at a glance
 
@@ -36,7 +42,9 @@ lifecycle (`warm` confirmed `cache-hit=true`):
    action-side direnv assist (install + `direnv allow`) is **deferred post-v1**.
 4. **Deferred test coverage** — stale/prefix-restore, pinned-version, private-dep,
    macOS (see §3.2).
-5. **Tag `v1.0.0` + publish to Marketplace** (R3, manual UI step).
+5. ✅ ~~Tag `v1.0.0`~~ — done; `v1`/`v1.0.0` live, release published. Marketplace
+   listing (R3) is still a manual UI step ("Publish this Action to the Marketplace"
+   on the v1.0.0 release).
 6. **Upstream IVPM fix** — relative `-p` breaks the pip venv backend (see §2.1);
    the action works around it but IVPM should be fixed too.
 
