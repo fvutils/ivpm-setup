@@ -31,20 +31,34 @@ jobs:
         run: |
           sphinx-build -b html -W --keep-going docs/source docs/_build/html
           touch docs/_build/html/.nojekyll
-      - name: Upload Pages artifact
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-        uses: actions/upload-pages-artifact@v3 # TODO: pin to full SHA before v1
-        with:
-          path: docs/_build/html
+      # The GitHub Pages deploy step WAS HERE and is deliberately gone (2026-08-31).
+      #
+      # It had no condition beyond the default branch, and since fvutils joined the
+      # Forgejo <-> GitHub mirror that branch is moved by a five-minute cron. A mirror
+      # operation must never be a publishing operation.
+      #
+      # DELETED rather than gated because dvkit.org owns all documentation: these docs
+      # publish to dvkit.org/fvutils/<repo>/ from .forgejo/workflows/, which uploads
+      # them as an artifact for the host-side poller. A tag-gated Pages deploy would
+      # still be a second publisher of the same content on a different schedule, and
+      # two publishers that agree today diverge the first time one fails quietly.
+      #
+      # THE DOCS BUILD ABOVE STAYS, as a CI check. A broken cross-reference should fail
+      # here, not render as a dead link on dvkit.org.
 
-  deploy:
-    # Only deploy from main; PRs just build to catch breakage.
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
-    steps:
-      - id: deploy
-        uses: actions/deploy-pages@v4 # TODO: pin to full SHA before v1
+
+  # The GitHub Pages deploy step WAS HERE and is deliberately gone (2026-08-31).
+  #
+  # It had no condition beyond the default branch, and since fvutils joined the
+  # Forgejo <-> GitHub mirror that branch is moved by a five-minute cron. A mirror
+  # operation must never be a publishing operation.
+  #
+  # DELETED rather than gated because dvkit.org owns all documentation: these docs
+  # publish to dvkit.org/fvutils/<repo>/ from .forgejo/workflows/, which uploads
+  # them as an artifact for the host-side poller. A tag-gated Pages deploy would
+  # still be a second publisher of the same content on a different schedule, and
+  # two publishers that agree today diverge the first time one fails quietly.
+  #
+  # THE DOCS BUILD ABOVE STAYS, as a CI check. A broken cross-reference should fail
+  # here, not render as a dead link on dvkit.org.
+
